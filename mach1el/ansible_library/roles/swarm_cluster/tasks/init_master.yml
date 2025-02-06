@@ -1,0 +1,25 @@
+---
+- name: Check if cluster is already initialized
+  ansible.builtin.command: docker info --format "{{ '{{.Swarm.ControlAvailable}}' }}"
+  register: swarm_mode
+  changed_when: false
+  failed_when: false
+  when: master_node in ansible_all_ipv4_addresses
+
+- name: Initialize the Swarm cluster if not already initialized
+  ansible.builtin.command: docker swarm init --advertise-addr {{ master_node }}
+  when:
+    - master_node in ansible_all_ipv4_addresses
+    - swarm_mode.stdout is defined
+    - swarm_mode.stdout == "false"
+
+- name: Retrieve the worker join token
+  ansible.builtin.command: docker swarm join-token -q worker
+  register: worker_join_token
+  changed_when: false
+  when: master_node in ansible_all_ipv4_addresses
+
+- name: Set worker join token as a fact
+  ansible.builtin.set_fact:
+    swarm_worker_join_token: "{{ worker_join_token.stdout }}"
+  when: master_node in ansible_all_ipv4_addresses

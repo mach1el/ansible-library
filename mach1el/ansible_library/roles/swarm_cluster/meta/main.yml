@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  author: Michael Winchester
+  description: Install and configure Docker for Swarm Cluster
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: EL
+      versions:
+        - "7"
+        - "8"
+    - name: Debian
+      versions:
+        - "10"
+        - "11"
+  categories:
+    - cloud
+    - system
+dependencies: []

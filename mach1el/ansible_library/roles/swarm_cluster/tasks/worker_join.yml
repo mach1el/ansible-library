@@ -1,0 +1,27 @@
+---
+- name: Fetch worker join token from master node
+  ansible.builtin.command: docker swarm join-token -q worker
+  register: worker_token_raw
+  delegate_to: "{{ master_node }}"
+  become: true
+  changed_when: false
+  when: master_node not in ansible_all_ipv4_addresses
+
+- name: Set worker join command fact
+  ansible.builtin.set_fact:
+    worker_join_command: "{{ worker_token_raw.stdout }}"
+  when: master_node not in ansible_all_ipv4_addresses
+
+- name: Check if the node is already part of a swarm
+  ansible.builtin.command: docker info --format "{{ '{{.Swarm.LocalNodeState}}' }}"
+  register: swarm_status
+  changed_when: false
+  failed_when: false
+  when: master_node not in ansible_all_ipv4_addresses
+
+- name: Join the worker node to the Swarm cluster
+  ansible.builtin.command: docker swarm join --token {{ worker_join_command }} {{ master_node }}:2377
+  when:
+    - master_node not in ansible_all_ipv4_addresses
+    - swarm_status.stdout is defined
+    - swarm_status.stdout != "active"

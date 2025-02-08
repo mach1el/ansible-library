@@ -1,0 +1,85 @@
+# Ignore common system files
+*.swp
+*.swo
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ignore Python virtual environments and dependencies
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+Pipfile.lock
+.poetry_cache/
+*.egg-info/
+pip-wheel-metadata/
+.env
+
+# Ignore SSH private keys
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Ignore secrets (Add specific files if using Ansible Vault)
+vault_pass.txt
+group_vars/*/vault.yml
+host_vars/*/vault.yml
+
+# Ignore Terraform & Cloud State files (if used alongside Ansible)
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Ignore Ansible-related cache & logs
+ansible.log
+*.retry
+*.facts
+inventory/*.retry
+*.retry.*
+ansible_collections/*/*/galaxy.yml
+ansible_collections/*/*/meta/runtime.yml
+
+# Ignore Ansible Galaxy metadata (after installing collections)
+collections/ansible_collections/*
+
+# Ignore roles and collection build artifacts
+*.tar.gz
+*.zip
+roles/**/build/
+roles/**/dist/
+roles/**/.tox/
+roles/**/.molecule/
+roles/**/molecule/.molecule/
+roles/**/.pytest_cache/
+roles/**/.cache/
+
+# Ignore molecule test cache & output
+molecule/.molecule/
+molecule/default/.molecule/
+molecule/default/*.retry
+molecule/default/*.log
+molecule/default/output/
+molecule/default/.cache/
+molecule/default/*.junit.xml
+
+# Ignore Ansible Lint cache
+.ansible-lint
+
+# Ignore custom log files
+logs/
+*.log
+
+# Ignore editor-specific files (VS Code, JetBrains, etc.)
+.vscode/
+.idea/
+*.iml

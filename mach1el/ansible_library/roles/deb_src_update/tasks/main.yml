@@ -1,0 +1,26 @@
+---
+- name: Gather OS Facts
+  setup:
+
+- name: Set Debian release dynamically
+  set_fact:
+    debian_release: "{{ ansible_facts['lsb']['codename'] }}"
+
+- name: Backup existing sources.list
+  copy:
+    src: /etc/apt/sources.list
+    dest: /etc/apt/sources.list.backup
+    remote_src: yes
+
+- name: Update sources.list from template
+  template:
+    src: sources.list.j2
+    dest: /etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Update and upgrade packages
+  apt:
+    update_cache: yes
+    upgrade: yes

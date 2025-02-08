@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: deb_src_update
+  author: mach1el
+  description: "Ansible role to update the Debian apt sources.list dynamically based on the detected version."
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - buster
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - apt
+    - debian
+    - sources
+    - repository
+    - updates
+    - system
+dependencies: []

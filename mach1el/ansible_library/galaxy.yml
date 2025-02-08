@@ -1,0 +1,14 @@
+namespace: mach1el
+name: ansible_library
+version: 1.0.0
+readme: README.md
+authors:
+  - Michael Dang <michaeldang.general@gmail.com>
+description: Ansible library
+license: 
+  - MIT
+tags: ["automation", "swarm_cluster"]
+dependencies: {}
+repository: https://github.com/mach1el/ansible-library
+homepage: https://github.com/mach1el/ansible-library
+issues: https://github.com/mach1el/ansible-library/issues

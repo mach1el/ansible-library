@@ -1,0 +1,19 @@
+---
+- name: Get OS Family
+  ansible.builtin.setup:
+    gather_subset:
+      - distribution
+
+- name: Install Docker on RHEL-based Systems
+  import_tasks: install_rhel.yml
+  when: ansible_os_family == "RedHat"
+
+- name: Install Docker on Debian-based Systems
+  import_tasks: install_debian.yml
+  when: ansible_os_family == "Debian"
+
+- name: Ensure Docker service is started
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: yes

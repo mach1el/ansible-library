@@ -1,0 +1,53 @@
+services:
+  db:
+    image: mich43l/postgresql:opensips-3.4
+    container_name: "opensips-db"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64M
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: {{ DB_USERNAME }}
+      POSTGRES_PASSWORD: {{ DB_PASSWORD }}
+      POSTGRES_DB: {{ DB_SCHEMA }}
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  opensips:
+    image: mich43l/opensips:3.4
+    container_name: "opensips"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64M
+    network_mode: "host"
+    volumes:
+      - /etc/opensips:/etc/opensips
+    depends_on:
+      - db
+
+  cp:
+    image: mich43l/opensips-cp:3.4
+    container_name: "opensips-cp"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64M
+    network_mode: "host"
+    environment:
+      PG_HOST: {{ NODE_IP }}
+      PG_USER: {{ DB_USERNAME }}
+      PG_PASSWORD: {{ DB_PASSWORD }}
+      PG_DATABASE: {{ DB_SCHEMA }}
+      OPENSIPS_HOST: {{ NODE_IP }}
+    depends_on:
+      - db
+
+volumes:
+  data:
+    driver: local

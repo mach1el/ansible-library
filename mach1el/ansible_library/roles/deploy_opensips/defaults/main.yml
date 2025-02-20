@@ -1,0 +1,9 @@
+# Database config
+DB_USERNAME: opensipsrw
+DB_PASSWORD: opensipsrw
+DB_HOST: localhost
+DB_SCHEMA: opensips
+
+# Opensips config
+OPENSIPS_CFG_DIR: /etc/opensips
+COMPOSE_DIR: /home/deployment/opensips

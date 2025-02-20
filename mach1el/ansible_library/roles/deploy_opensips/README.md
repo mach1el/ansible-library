@@ -1,38 +1,76 @@
-Role Name
-=========
+# OpenSIPS Deployment with Ansible
 
-A brief description of the role goes here.
+This guide provides instructions on how to deploy OpenSIPS using Ansible. The deployment includes OpenSIPS, OpenSIPS Control Panel (opensips-cp), and a PostgreSQL database.
 
-Requirements
-------------
+## Role Information
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- **Role Name:** deploy_opensips
+- **Ansible Collection:** mach1el.ansible_library
 
-Role Variables
---------------
+## Prerequisites
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+Ensure that you have Ansible installed on your system. If Ansible is not installed, follow the steps below:
 
-Dependencies
-------------
+### Install Ansible
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+```sh
+sudo apt update
+sudo apt install -y ansible
+```
 
-Example Playbook
-----------------
+## Environment Variables
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+The following environment variables are used for configuration:
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```ini
+# Database Configuration
+DB_USERNAME=opensipsrw
+DB_PASSWORD=opensipsrw
+DB_HOST=localhost
+DB_SCHEMA=opensips
 
-License
--------
+# OpenSIPS Configuration
+OPENSIPS_CFG_DIR=/etc/opensips
+COMPOSE_DIR=/home/deployment/opensips
+```
 
-BSD
+Ensure these variables are set in your environment or update the Ansible role variables accordingly.
 
-Author Information
-------------------
+## Running the Deployment
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Apply the Ansible role to deploy OpenSIPS:
+
+```sh
+ansible-playbook -i inventory deploy_opensips.yml
+```
+
+This will start the following services:
+- **OpenSIPS**: SIP proxy server
+- **OpenSIPS Control Panel (opensips-cp)**: Web interface for managing OpenSIPS
+- **PostgreSQL (postgresdb)**: Database backend for OpenSIPS
+
+## Notes
+- This setup only supports PostgreSQL as the database backend.
+- Ensure that your PostgreSQL instance is properly configured before starting OpenSIPS.
+- You may need to modify the OpenSIPS configuration file (`opensips.cfg`) as per your requirements.
+
+## Troubleshooting
+
+- To check the logs of a running service:
+  ```sh
+  ansible -i inventory -m shell -a 'docker logs -f <service_name>'
+  ```
+  Replace `<service_name>` with `opensips`, `opensips-cp`, or `postgresdb`.
+
+- To restart a specific service:
+  ```sh
+  ansible -i inventory -m shell -a 'docker restart <service_name>'
+  ```
+
+- If there are database connection issues, verify that PostgreSQL is running and accessible from the OpenSIPS container.
+
+## Additional Resources
+- [OpenSIPS Documentation](https://www.opensips.org/Documentation/)
+- [Ansible Documentation](https://docs.ansible.com/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+

@@ -17,3 +17,6 @@
     name: docker
     state: started
     enabled: yes
+
+- name: Deploy Opensips configuration
+  import_tasks: deploy.yml

@@ -1,0 +1,46 @@
+- name: Set NODE_IP dynamically
+  set_fact:
+    NODE_IP: "{{ ansible_default_ipv4.address }}"
+
+- name: Ensure directories available
+  block: 
+    - name: Ensure Opensips cfg directory exists
+      file:
+        path: "{{ OPENSIPS_CFG_DIR }}"
+        state: directory
+        mode: '0755'
+    
+    - name: Ensure deployment directory exists
+      file:
+        path: "{{ COMPOSE_DIR }}"
+        state: directory
+        mode: '0755'
+
+- name: Copy and process Jinja2 template
+  block:
+    - name: Copy Opensips cfg file
+      template:
+        src: opensips.cfg.j2
+        dest: "{{ OPENSIPS_CFG_DIR }}/opensips.cfg"
+        mode: '0644'
+    
+    - name: Copy compose file
+      template:
+        src: docker-compose.yml.j2
+        dest: "{{ COMPOSE_DIR }}/docker-compose.yml"
+        mode: '0755'
+      vars:
+        NODE_IP: "{{ NODE_IP }}"
+
+- name: Run docker-compose up -d
+  command: docker-compose up -d
+  args:
+    chdir: "{{ COMPOSE_DIR }}"
+
+- name: Ensure containers are running
+  shell: "docker ps"
+  register: docker_status
+
+- name: Display running containers
+  debug:
+    var: docker_status.stdout

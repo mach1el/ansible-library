@@ -1,0 +1,315 @@
+####### Global Parameters #########
+log_level=2
+xlog_level=3
+stderror_enabled=yes
+syslog_enabled=yes
+syslog_facility=LOG_LOCAL0
+mhomed=1
+#auto_aliases = yes
+disable_503_translation=yes
+
+# Worker Optimization
+udp_workers=8
+
+# Database Optimization
+db_default_url = "postgres://{{ DB_USERNAME }}:{{ DB_PASSWORD }}@{{ DB_HOST }}/{{ DB_SCHEMA }}"
+db_max_async_connections = 512
+
+socket=udp:*:5060
+# socket=hep_tcp:192.168.1.11:9060
+
+####### Modules Section ########
+mpath="/usr/lib/x86_64-linux-gnu/opensips/modules/"
+
+loadmodule "acc.so"
+loadmodule "db_postgres.so"
+loadmodule "dialog.so"
+loadmodule "httpd.so"
+loadmodule "json.so"
+loadmodule "load_balancer.so"
+loadmodule "maxfwd.so"
+loadmodule "mi_fifo.so"
+loadmodule "mi_http.so"
+loadmodule "nathelper.so"
+loadmodule "proto_tcp.so"
+loadmodule "proto_udp.so"
+loadmodule "proto_ws.so"
+loadmodule "registrar.so"
+loadmodule "rr.so"
+loadmodule "signaling.so"
+loadmodule "sipmsgops.so"
+loadmodule "sl.so"
+loadmodule "tm.so"
+loadmodule "uac.so"
+loadmodule "userblacklist.so"
+loadmodule "usrloc.so"
+
+#### Transaction Module
+modparam("tm", "fr_timeout", 5)
+modparam("tm", "fr_inv_timeout", 60)
+modparam("tm", "restart_fr_on_each_reply", 0)
+modparam("tm", "onreply_avp_mode", 1)
+
+#### Record Route Module
+modparam("rr", "append_fromtag", 0)
+
+#### User Location Module
+modparam("usrloc", "nat_bflag", "NAT")
+modparam("usrloc", "working_mode_preset", "single-instance-no-db")
+
+#### Registrar Module
+modparam("registrar", "tcp_persistent_flag", "TCP_PERSISTENT")
+
+#### NAT Helper Module
+modparam("nathelper", "natping_interval", 15)
+modparam("nathelper", "ping_nated_only", 1)
+
+#### MI HTTP
+modparam("httpd", "port", 8989)
+
+#### ACCounting module
+modparam("acc", "early_media", 0)
+modparam("acc", "report_cancels", 1)
+modparam("acc", "detect_direction", 0)
+modparam("acc", "db_table_missed_calls", "missed_calls")
+modparam("acc", "extra_fields", "db: src_ip; dst_ip; agent; prefix; carrier")
+
+#### Dialog module
+modparam("dialog", "enable_stats", 1)
+modparam("dialog", "profiles_with_value","caller")
+modparam("dialog", "dlg_match_mode", 2)
+modparam("dialog", "default_timeout", 1800)
+modparam("dialog", "db_mode", 1)
+
+#### Load Balancer
+modparam("load_balancer", "probing_reply_codes", "501,404,403")
+modparam("load_balancer", "probing_verbose", 1)
+
+####### Routing Logic ########
+
+route {
+
+  # Max-Forwards check
+  if (!mf_process_maxfwd_header(10)) {
+    send_reply(483, "Too Many Hops");
+    exit;
+  }
+
+  # Initial checks for dialog
+  if (has_totag()) {
+    if (is_method("ACK") && t_check_trans()) {
+      t_relay();
+      exit;
+    }
+
+    if (!loose_route()) {
+      send_reply(404, "Not here");
+      exit;
+    }
+
+    if (is_method("BYE")) {
+      do_accounting("db", "failed");
+      xlog("L_INFO", "CALL ENDED, $ru, $ci, $fn, $fu\n");
+    }
+
+    route(relay);
+    exit;
+  }
+
+  # Handle Unauthorized Requests (Prevent Open Relay)
+  if (!is_myself("$rd") && !is_myself("$fd")) {
+    xlog("L_INFO", "BLOCKED UNAUTHORIZED RELAY: $fu -> $tu\n");
+    send_reply(403, "Forbidden");
+    exit;
+  }
+
+  t_check_trans();
+
+  if ( !(is_method("REGISTER")  ) ) {
+    if (is_myself("$fd")) {
+    } else {
+      if (!is_myself("$rd")) {
+        send_reply(403,"Relay Forbidden");
+        exit;
+      }
+    }
+  }
+
+  if (!is_method("REGISTER|MESSAGE")) record_route();
+
+  # Handle REGISTER requests
+  if (is_method("REGISTER")) {
+    if (!save("location")) {
+      xlog("L_INFO", "Failed to register AoR $tu\n");
+    }
+    exit;
+  }
+
+  # Preloaded Route header check
+  if (loose_route()) {
+    xlog("L_INFO", "Attempt to route with preloaded Route's [$fu/$tu/$ru/$ci]");
+    if (!is_method("ACK")) send_reply(403, "Preload Route denied");
+    exit;
+  }
+
+  if (is_method("PUBLISH|SUBSCRIBE")) {
+    send_reply(503, "Service Unavailable");
+    exit;
+  }
+
+  # Handle CANCEL call
+  if (is_method("CANCEL")) {
+    xlog("L_INFO", "CALL CANCELLED,$ru,$ci,$fn,$fu\n");
+    if (t_check_trans()) t_relay();
+    exit;
+  }
+
+  # Handle INVITE (Call Processing)
+  if (is_method("INVITE")) {
+    create_dialog("B");
+    do_accounting("db|db", "cdr|missed");
+    $acc_extra(src_ip) = $si;
+    $acc_extra(agent) = $rU;
+    xlog("L_INFO", "CALL, $ru, $ci, $fn, $fu\n");
+    route(limit);
+  }
+
+  # Reject unknown destinations
+  if (!is_myself("$rd")) {
+    append_hf("P-hint: outbound\r\n");
+    route(relay);
+  } else {
+    send_reply(404, "Destination Not Found");
+    exit;
+  }
+  
+  # White list 
+  if ($rU==NULL) {
+    if ($si == "127.0.0.1") {
+      t_reply(200, "OK");
+      exit;
+    } else {
+      send_reply(484, "Address Incomplete");
+      exit;
+    }
+  }
+
+  # do lookup with method filtering
+  if (!lookup("location","method-filtering")) {
+    t_reply(404, "Not Found");
+    exit;
+  }
+
+  do_accounting("log", "missed");
+}
+
+route[limit] {
+  if ($si == "127.0.0.1") {
+    set_dlg_profile("caller", $si);
+    get_profile_size("caller", $si, $var(calls));
+    if ($var(calls) > 100) {
+      xlog("L_INFO", "==> Reached over limited calls.\n");
+      send_reply(509, "Call over limited");
+      exit;
+    } else {
+      xlog("L_INFO", "Performing $var(calls) calls\n");
+      route(load_balance);
+    }
+  }
+}
+
+route[load_balance] {
+  if ($rU=~"((03)[2-9]|(09)[678]|(086)).{7}") {
+    $avp(lb_res) = "vt";
+    $acc_extra(carrier) = "Viettel";
+  } else if ($rU=~"((09)[03]|(089)|(07)[06-9]).{7}") {
+    $avp(lb_res) = "mb";
+    $acc_extra(carrier) = "Mobi";
+  } else if ($rU=~"((08)[1-58]|(09)[14]).{7}") {
+    $avp(lb_res) = "vn";
+    $acc_extra(carrier) = "Vina";
+  } else {
+    send_reply(403, "Destination not found");
+    exit;
+  }
+
+  $var(exten_len) = $(rU{s.len});
+  if ( $var(exten_len) == 10 ) {
+    $acc_extra(prefix) = 0;
+  } else if ( $var(exten_len) == 12 ) {
+    $acc_extra(prefix) = $(rU{s.substr,0,2});
+  } else if ( $var(exten_len) == 13 ) {
+    $acc_extra(prefix) = $(rU{s.substr,0,3});
+  } else if ( $var(exten_len) == 14 ) {
+    $acc_extra(prefix) = $(rU{s.substr,0,4});
+  }
+
+  if (!check_blacklist("userblacklist")) {
+    xlog("L_INFO", "NOTICE: $rU is blacklisted\n");
+    acc_db_request("Blacklisted", "acc");
+    sl_send_reply(504, "Blacklisted");
+    exit;
+  }
+
+  if (!lb_start(1, $avp(lb_res), "s")) {
+    xlog("L_INFO", "REPORT: LB failed. Service is full\n");
+    acc_db_request("$avp(lb_res) Service full", "acc");
+    send_reply(488, "Service full");
+    exit;
+  }
+
+  xlog("L_INFO", "Selected destination is: <$dd> for <$ru>\n");
+  $acc_extra(dst_ip) = $dd;
+  t_on_failure("missed_call");
+  route(relay);
+}
+
+route[relay] {
+  if (is_method("INVITE")) {
+    t_on_branch("per_branch_ops");
+    t_on_reply("handle_nat");
+    t_on_failure("missed_call");
+
+    if(nat_uac_test("private-contact, private-sdp")) {
+      xlog("L_INFO", "Fix conntact behind NAT\n");
+      fix_nated_contact();
+    }
+  }
+
+  # if (is_method("BYE|CANCEL")) {
+  # }
+
+  if (!t_relay()) {
+    send_reply(500, "Internal Error");
+  }
+
+  exit;
+}
+
+branch_route[per_branch_ops] {
+  xlog("L_INFO", "New branch at $ru\n");
+}
+
+onreply_route[handle_nat] {
+  if (has_body("application/sdp") && nat_uac_test("private-sdp"))
+  {
+    xlog("L_INFO", "SDP contains a RFC1918 address\n");
+    fix_nated_sdp("rewrite-media-ip, rewrite-origin-ip");
+  }
+
+  if (nat_uac_test("private-contact,private-sdp")) {
+    xlog("L_INFO", "NAT detected, fixing contact\n");
+    fix_nated_contact();
+  }
+}
+
+failure_route[missed_call] {
+  if (t_was_cancelled()) {
+    exit;
+  }
+
+  if (t_check_status("486")) {
+    xlog("L_INFO", "Call failed: Busy ($ru, $ci, $fn, $fu)\n");
+    acc_db_request("Busy Call", "acc");
+  }
+}

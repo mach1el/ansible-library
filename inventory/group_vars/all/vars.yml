@@ -18,6 +18,7 @@ deploy_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBcjRObOeBWkIFHcmOZfnWpC
 # --- Per-project deploy table -------------------------------------------------
 # Add a service here and it becomes deployable: ansible-playbook deploy.yml -e project=<key>
 projects:
+  # rsync mode (default): ship a folder and build/run on the host.
   routing:
     repo_dir: routing                 # subdir created under deploy_root
     source: deployment-template       # folder inside the service checkout to ship
@@ -28,6 +29,25 @@ projects:
     rsync_excludes: [".git", ".github", ".env", "certbot"]
     health_url: "http://127.0.0.1/_routing/health"
 
+  # image mode: render a compose Jinja template with the pushed image tag, pull, up.
+  voidocc:
+    mode: image
+    repo_dir: voidocc
+    source: deployment-template       # holds docker-compose.yml.j2
+    compose_template: docker-compose.yml.j2
+    expected_services: 2              # backend + frontend
+
+# --- Per-project non-secret settings -----------------------------------------
+registry_namespace: mich43l
+routing_network: routing
+
+# voidocc backend runtime config (non-secret; env injected via compose template)
+voidocc_gemini_model: "gemini-2.5-flash"
+voidocc_gemini_thinking_budget: "8192"
+voidocc_gemini_max_output_tokens: "24576"
+voidocc_allow_origins: "https://apexvoid.net,https://fate.apexvoid.net"
+
 # --- Secret indirection (values come from vault.yml) --------------------------
 # Roles reference these names; only vault.yml holds the actual material.
 deploy_ssh_private_key: "{{ vault_deploy_ssh_private_key }}"
+voidocc_gemini_api_key: "{{ vault_voidocc_gemini_api_key }}"

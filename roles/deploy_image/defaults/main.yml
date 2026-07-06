@@ -1,0 +1,6 @@
+---
+# Path to the service checkout that holds the compose template.
+# In CI this is the GitHub workspace; locally, pass -e src_base=/path/to/repo.
+src_base: "{{ lookup('env', 'GITHUB_WORKSPACE') | default(playbook_dir ~ '/..', true) }}"
+# Registry image prefix; the compose template reads {{ registry_namespace }}.
+registry_namespace: "mich43l"

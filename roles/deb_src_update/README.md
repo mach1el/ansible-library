@@ -21,7 +21,7 @@ This Ansible role updates the **Debian `sources.list`** file dynamically based o
 ## Usage Example
 ### 1. Install the Role
 ```sh
-ansible-galaxy install mach1el.ansible_library.deb_src_update
+ansible-galaxy install deb_src_update
 ```
 
 ### 2. Use in a Playbook
@@ -29,7 +29,7 @@ ansible-galaxy install mach1el.ansible_library.deb_src_update
 - hosts: all
   become: yes
   roles:
-    - mach1el.ansible_library.deb_src_update
+    - deb_src_update
 ```
 
 ### 3. Override Variables (Optional)
@@ -38,7 +38,7 @@ Manually specify a Debian release:
 - hosts: all
   become: yes
   roles:
-    - role: mach1el.ansible_library.deb_src_update
+    - role: deb_src_update
       vars:
         debian_release: "bullseye"
 ```

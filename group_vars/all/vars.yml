@@ -1,0 +1,33 @@
+---
+# =============================================================================
+# Centralized deployment configuration — single source of truth.
+# Non-secret values live here (committed in clear). Secrets live in vault.yml
+# (ansible-vault encrypted) and are referenced through the indirection vars at
+# the bottom of this file.
+# =============================================================================
+
+# --- Fleet-wide defaults ------------------------------------------------------
+deploy_user: apexvoid
+deploy_root: /home/apexvoid/deployment
+# Where CI/control node stages the (vaulted) private key used to reach the host.
+deploy_key_path: /tmp/apexvoid_deploy_key
+
+# Public half of the deploy key — not secret, authorized by init_env.
+deploy_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBcjRObOeBWkIFHcmOZfnWpC0dSwkH7oKfOev4sBzQkf github-actions-deploy@apexvoid"
+
+# --- Per-project deploy table -------------------------------------------------
+# Add a service here and it becomes deployable: ansible-playbook deploy.yml -e project=<key>
+projects:
+  routing:
+    repo_dir: routing                 # subdir created under deploy_root
+    source: deployment-template       # folder inside the service checkout to ship
+    compose_files:
+      - docker-compose.yml
+      - docker-compose.prod.yml
+    compose_args: "up -d --remove-orphans"
+    rsync_excludes: [".git", ".github", ".env", "certbot"]
+    health_url: "http://127.0.0.1/_routing/health"
+
+# --- Secret indirection (values come from vault.yml) --------------------------
+# Roles reference these names; only vault.yml holds the actual material.
+deploy_ssh_private_key: "{{ vault_deploy_ssh_private_key }}"

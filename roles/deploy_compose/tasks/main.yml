@@ -1,0 +1,51 @@
+---
+# Ship a service's deploy folder to the host and run docker compose there.
+# Ansible equivalent of action-library/deploy-compose. Config comes from the
+# projects table in group_vars; the files come from {{ src_base }} (the service
+# checkout on the control node / CI runner).
+
+- name: Resolve project config
+  ansible.builtin.set_fact:
+    proj: "{{ projects[project] }}"
+
+- name: Fail if project is unknown
+  ansible.builtin.fail:
+    msg: "Unknown project '{{ project }}'. Known: {{ projects.keys() | list }}"
+  when: project not in projects
+
+- name: Ensure target directory exists
+  ansible.builtin.file:
+    path: "{{ deploy_root }}/{{ proj.repo_dir }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0755"
+
+- name: Sync deploy files to the host
+  ansible.posix.synchronize:
+    src: "{{ src_base }}/{{ proj.source }}/"
+    dest: "{{ deploy_root }}/{{ proj.repo_dir }}/"
+    delete: true
+    recursive: true
+    # Excluded paths (.env, certbot, ...) are preserved on the host by --delete.
+    rsync_opts: "{{ proj.rsync_excludes | default([]) | map('regex_replace', '^(.*)$', '--exclude=\\1') | list }}"
+
+- name: docker compose up
+  ansible.builtin.command:
+    cmd: >-
+      docker compose
+      {{ proj.compose_files | map('regex_replace', '^(.*)$', '-f \1') | join(' ') }}
+      {{ proj.compose_args | default('up -d') }}
+    chdir: "{{ deploy_root }}/{{ proj.repo_dir }}"
+  register: compose_result
+  changed_when: true
+
+- name: Health check
+  ansible.builtin.uri:
+    url: "{{ proj.health_url }}"
+    status_code: 200
+  register: health
+  retries: 5
+  delay: 3
+  until: health.status | default(0) == 200
+  when: proj.health_url is defined and proj.health_url | length > 0

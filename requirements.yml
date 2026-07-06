@@ -1,0 +1,5 @@
+# Collections used by the roles. Install with:
+#   ansible-galaxy collection install -r requirements.yml
+collections:
+  - name: ansible.posix   # synchronize, authorized_key
+    version: ">=1.5.0"

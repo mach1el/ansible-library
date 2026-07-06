@@ -1,0 +1,16 @@
+---
+# One-time host provisioning. Connects as root (fresh host, deploy user not yet
+# created). Run from a machine with root SSH access to the target:
+#
+#   ansible-playbook playbooks/init-env.yml \
+#     -e provision_key=~/.ssh/id_rsa            # root-capable key (or use agent)
+#
+- name: Provision deploy host
+  hosts: "{{ target | default('deploy_targets') }}"
+  gather_facts: false
+  become: true
+  vars:
+    ansible_user: "{{ provision_user | default('root') }}"
+    ansible_ssh_private_key_file: "{{ provision_key | default(omit) }}"
+  roles:
+    - init_env

@@ -1,0 +1,29 @@
+---
+# Deploy one project to its host.
+#
+#   ansible-playbook playbooks/deploy.yml -e project=routing -e src_base=$PWD
+#
+# In CI, src_base defaults to $GITHUB_WORKSPACE (the service checkout).
+
+# Play 1 — stage the vaulted SSH key on the control node so play 2 can connect
+# as the deploy user. One vault password unlocks everything.
+- name: Stage deploy SSH key
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+  tasks:
+    - name: Write private key for host connection
+      ansible.builtin.copy:
+        content: "{{ deploy_ssh_private_key }}"
+        dest: "{{ deploy_key_path }}"
+        mode: "0600"
+
+# Play 2 — ship files and run compose on the target.
+- name: Deploy compose project
+  hosts: "{{ target | default('deploy_targets') }}"
+  gather_facts: false
+  roles:
+    - role: deploy_compose

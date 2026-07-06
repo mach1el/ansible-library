@@ -1,89 +1,99 @@
-# Ansible Library
-![Ansible](https://img.shields.io/badge/ansible-%231A1918.svg?style=for-the-badge&logo=ansible&logoColor=white)
-![YAML](https://img.shields.io/badge/yaml-%23ffffff.svg?style=for-the-badge&logo=yaml&logoColor=151515)
+# ansible-library
 
-## Table of Contents
-- [Ansible Library](#ansible-library)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Features](#features)
-  - [Installation](#installation)
-    - [Install the Collection from Ansible Galaxy](#install-the-collection-from-ansible-galaxy)
-  - [Available Roles](#available-roles)
-    - [1. Role: `role1`](#1-role-role1)
-    - [2. Role: `role2`](#2-role-role2)
-  - [Example Playbook](#example-playbook)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Contact](#contact)
+![Ansible](https://img.shields.io/badge/ansible-%231A1918.svg?style=flat-square&logo=ansible&logoColor=white)
 
-## Overview
-Ansible Library is a collection of reusable Ansible roles designed to automate infrastructure setup and management. This collection includes multiple roles that can be used individually or together to configure servers efficiently.
+Central **deployment control repo** for `mach1el` services — the single source of
+truth for *where* and *how* each service deploys. Non-secret config lives in
+`group_vars` (clear text); secrets live in an **Ansible Vault** (encrypted, safe
+to commit). GitHub Actions (via [`action-library`](https://github.com/mach1el/action-library))
+runs these playbooks, so a service repo needs only **one** secret: the vault
+password.
 
-## Features
-- Multiple roles for different use cases
-- Easy installation and usage with Ansible Galaxy
-- Well-structured and modular
+> Restructured from an Ansible *collection* into a control repo: roles moved to
+> `roles/`, plus `inventory/`, `group_vars/`, `playbooks/`.
 
-## Installation
-### Install the Collection from Ansible Galaxy
-Once the collection is published on Ansible Galaxy, you can install it using:
+## Layout
+
+```
+ansible.cfg              # inventory path, roles_path, host_key_checking off
+inventory/hosts.yml      # the fleet (apexvoid VPS: host, port, users)
+group_vars/all/
+  vars.yml               # ← centralized variables (deploy_user, deploy_root, projects table)
+  vault.yml              # ← secrets, ansible-vault encrypted (SSH key, API keys)
+roles/
+  init_env/              # provision a host (deploy user, docker group, key, deploy root)
+  deploy_compose/        # rsync a service's deploy folder + docker compose up
+  deb_src_update/ swarm_cluster/   # pre-existing roles
+playbooks/
+  init-env.yml           # one-time host provisioning (run as root)
+  deploy.yml             # deploy one project
+requirements.yml         # ansible.posix
+```
+
+## Where variables live
+
+Everything a deploy needs is defined **once** in
+[`group_vars/all/vars.yml`](group_vars/all/vars.yml):
+
+- fleet defaults: `deploy_user`, `deploy_root`, `deploy_key_path`, `deploy_public_key`
+- a `projects:` table — add a service there and it becomes deployable.
+
+Secrets (the deploy SSH private key, and later per-service API keys/tokens) live
+in [`group_vars/all/vault.yml`](group_vars/all/vault.yml), referenced through
+`vault_*` indirection vars. Edit with:
+
 ```bash
-ansible-galaxy collection install mach1el.ansible_library
+ansible-vault edit group_vars/all/vault.yml
 ```
 
-Or, if using the GitHub repository directly:
+## Usage
+
+Install the collection dependency once:
+
 ```bash
-git clone https://github.com/mach1el/ansible-library.git
-cd ansible-library
+ansible-galaxy collection install -r requirements.yml
 ```
 
-## Available Roles
-### 1. Role: `role1`
-**Description:** Example role to provisioning Swarm cluster.
+**Provision a fresh host** (run as root; deploy user not yet created):
 
-**Usage in Playbook:**
-```yaml
-- hosts: servers
-  roles:
-    - mach1el.ansible_library.role1
-```
-
-### 2. Role: `role2`
-**Description:** Example role to set up keepalived.
-
-**Usage in Playbook:**
-```yaml
-- hosts: servers
-  roles:
-    - mach1el.ansible_library.role2
-```
-
-## Example Playbook
-You can create a playbook (`site.yml`) to use multiple roles:
-```yaml
-- hosts: all
-  become: true
-  roles:
-    - mach1el.ansible_library.role1
-    - mach1el.ansible_library.role2
-```
-
-Run the playbook with:
 ```bash
-ansible-playbook -i inventory site.yml
+ansible-playbook playbooks/init-env.yml -e provision_key=~/.ssh/id_rsa
 ```
 
-## Contributing
-1. Fork the repository
-2. Create a feature branch (`git checkout -b new-feature`)
-3. Commit your changes (`git commit -m "Added new feature"`)
-4. Push to the branch (`git push origin new-feature`)
-5. Create a Pull Request
+**Deploy a project** (locally, pointing at a service checkout):
 
-## License
-MIT License
+```bash
+ansible-playbook playbooks/deploy.yml \
+  -e project=routing -e src_base=/path/to/routing \
+  --ask-vault-pass
+```
 
-## Contact
-For questions and support, open an issue in the GitHub repository.
+`deploy.yml` stages the vaulted SSH key on the control node, then rsyncs the
+project's deploy folder to the host and runs `docker compose`. The rsync excludes
+(`.env`, `certbot`, ...) are preserved on the host by `--delete`.
 
+## CI integration
+
+`action-library`'s `deploy-ansible.yml` reusable workflow checks out the service
+repo + this repo, installs Ansible, and runs `deploy.yml`. The service repo only
+sets the secret `ANSIBLE_VAULT_PASSWORD`:
+
+```yaml
+jobs:
+  deploy:
+    uses: mach1el/action-library/.github/workflows/deploy-ansible.yml@master
+    with:
+      project: routing
+    secrets:
+      vault-password: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+```
+
+Because the vault is encrypted, this repo can be **public** and CI needs no read
+token. Keep it private and pass `ansible-library-token` instead if you prefer.
+
+## Security
+
+- `vault.yml` is committed **only while encrypted** (AES256). `.gitignore` allows
+  it as an explicit exception; never commit a decrypted vault.
+- Vault password files (`.vault_pass`, `vault_pass.txt`) are git-ignored — the
+  password belongs in the GitHub secret `ANSIBLE_VAULT_PASSWORD`, nowhere in git.

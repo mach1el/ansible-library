@@ -1,0 +1,26 @@
+---
+# Provision a host for compose-over-SSH deploys. Run as root (see playbook).
+# Ansible equivalent of action-library/init-env/init-env.sh — idempotent.
+
+- name: Ensure deploy user exists and is in the docker group
+  ansible.builtin.user:
+    name: "{{ deploy_user }}"
+    shell: /bin/bash
+    create_home: true
+    groups: "{{ init_env_docker_group }}"
+    append: true
+
+- name: Authorize the deploy public key
+  ansible.posix.authorized_key:
+    user: "{{ deploy_user }}"
+    key: "{{ deploy_public_key }}"
+    state: present
+    exclusive: false
+
+- name: Create the deployment root
+  ansible.builtin.file:
+    path: "{{ deploy_root }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0755"

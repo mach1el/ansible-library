@@ -39,6 +39,13 @@ projects:
     compose_template: docker-compose.yml.j2
     expected_services: 2              # backend + frontend
 
+  apexvoid-trading:
+    mode: image
+    repo_dir: apexvoid-trading
+    source: deployment-template       # holds docker-compose.yml.j2
+    compose_template: docker-compose.yml.j2
+    expected_services: 1              # frontend only (no secret env)
+
 # --- Per-project non-secret settings -----------------------------------------
 registry_namespace: mich43l
 routing_network: routing

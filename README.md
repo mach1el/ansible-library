@@ -1,6 +1,11 @@
 # ansible-library
 
-![Ansible](https://img.shields.io/badge/ansible-%231A1918.svg?style=flat-square&logo=ansible&logoColor=white)
+[![Ansible](https://img.shields.io/badge/Ansible-control_repo-1A1918?style=flat-square&logo=ansible&logoColor=white)](https://www.ansible.com/)
+[![Ansible Vault](https://img.shields.io/badge/Secrets-Ansible_Vault-EE0000?style=flat-square&logo=ansible&logoColor=white)](https://docs.ansible.com/ansible/latest/vault_guide/index.html)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![License](https://img.shields.io/github/license/mach1el/ansible-library?style=flat-square)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/mach1el/ansible-library?style=flat-square)](https://github.com/mach1el/ansible-library/commits/master)
+[![Repo Size](https://img.shields.io/github/repo-size/mach1el/ansible-library?style=flat-square)](https://github.com/mach1el/ansible-library)
 
 Central **deployment control repo** for `mach1el` services — the single source of
 truth for *where* and *how* each service deploys. Non-secret config lives in

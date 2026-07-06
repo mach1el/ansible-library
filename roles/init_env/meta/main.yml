@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: init_env
+  author: mach1el
+  description: Provision a host for compose-over-SSH deploys (deploy user, docker group, key, deploy root).
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions: [all]
+dependencies: []

@@ -1,0 +1,4 @@
+---
+# Path to the service checkout that contains the deploy folder.
+# In CI this is the GitHub workspace; locally, pass -e src_base=/path/to/repo.
+src_base: "{{ lookup('env', 'GITHUB_WORKSPACE') | default(playbook_dir ~ '/..', true) }}"

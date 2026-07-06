@@ -5,7 +5,7 @@ This guide provides instructions on how to deploy OpenSIPS using Ansible. The de
 ## Role Information
 
 - **Role Name:** deploy_opensips
-- **Ansible Collection:** mach1el.ansible_library
+- **Repo:** ansible-library (control repo, roles/deploy_opensips)
 
 ## Prerequisites
 

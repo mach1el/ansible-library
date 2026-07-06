@@ -38,7 +38,8 @@ vault-pass*
 # By default ignore plaintext vaults, but DO commit our encrypted vault.
 group_vars/*/vault.yml
 host_vars/*/vault.yml
-!group_vars/all/vault.yml
+inventory/group_vars/*/vault.yml
+!inventory/group_vars/all/vault.yml
 
 # Staged deploy key written by playbooks/deploy.yml (never commit)
 /tmp/apexvoid_deploy_key

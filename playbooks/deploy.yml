@@ -12,8 +12,8 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../group_vars/all/vars.yml
-    - ../group_vars/all/vault.yml
+    - ../inventory/group_vars/all/vars.yml
+    - ../inventory/group_vars/all/vault.yml
   tasks:
     - name: Write private key for host connection
       ansible.builtin.copy:

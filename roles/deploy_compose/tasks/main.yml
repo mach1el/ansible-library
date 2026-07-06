@@ -40,6 +40,15 @@
   register: compose_result
   changed_when: true
 
+# Bind-mounted config (e.g. nginx) changes on disk but `up -d` won't recreate an
+# unchanged container, so the process keeps the old config. Reload it explicitly.
+- name: Post-up reload (optional)
+  ansible.builtin.command:
+    cmd: "{{ proj.reload_cmd }}"
+    chdir: "{{ deploy_root }}/{{ proj.repo_dir }}"
+  changed_when: true
+  when: proj.reload_cmd is defined and proj.reload_cmd | length > 0
+
 - name: Health check
   ansible.builtin.uri:
     url: "{{ proj.health_url }}"

@@ -27,12 +27,14 @@ projects:
       - docker-compose.prod.yml
     compose_args: "up -d --remove-orphans"
     rsync_excludes: [".git", ".github", ".env", "certbot"]
+    # nginx config is bind-mounted; reload after syncing new config.
+    reload_cmd: "docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T nginx nginx -s reload"
     health_url: "http://127.0.0.1/_routing/health"
 
   # image mode: render a compose Jinja template with the pushed image tag, pull, up.
-  voidocc:
+  apexvoid-occult:
     mode: image
-    repo_dir: voidocc
+    repo_dir: apexvoid-occult
     source: deployment-template       # holds docker-compose.yml.j2
     compose_template: docker-compose.yml.j2
     expected_services: 2              # backend + frontend
@@ -41,13 +43,13 @@ projects:
 registry_namespace: mich43l
 routing_network: routing
 
-# voidocc backend runtime config (non-secret; env injected via compose template)
-voidocc_gemini_model: "gemini-2.5-flash"
-voidocc_gemini_thinking_budget: "8192"
-voidocc_gemini_max_output_tokens: "24576"
-voidocc_allow_origins: "https://apexvoid.net,https://fate.apexvoid.net"
+# apexvoid-occult backend runtime config (non-secret; env injected via compose template)
+apexvoid_occult_gemini_model: "gemini-2.5-flash"
+apexvoid_occult_gemini_thinking_budget: "8192"
+apexvoid_occult_gemini_max_output_tokens: "24576"
+apexvoid_occult_allow_origins: "https://apexvoid.net,https://fate.apexvoid.net"
 
 # --- Secret indirection (values come from vault.yml) --------------------------
 # Roles reference these names; only vault.yml holds the actual material.
 deploy_ssh_private_key: "{{ vault_deploy_ssh_private_key }}"
-voidocc_gemini_api_key: "{{ vault_voidocc_gemini_api_key }}"
+apexvoid_occult_gemini_api_key: "{{ vault_apexvoid_occult_gemini_api_key }}"

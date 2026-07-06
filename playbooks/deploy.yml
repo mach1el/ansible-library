@@ -21,9 +21,13 @@
         dest: "{{ deploy_key_path }}"
         mode: "0600"
 
-# Play 2 — ship files and run compose on the target.
-- name: Deploy compose project
+# Play 2 — deploy on the target. The project's `mode` picks the role:
+#   rsync  (default) -> deploy_compose : ship a folder + build on host
+#   image            -> deploy_image   : render compose template + pull images
+- name: Deploy project
   hosts: "{{ target | default('deploy_targets') }}"
   gather_facts: false
-  roles:
-    - role: deploy_compose
+  tasks:
+    - name: Select deploy role by project mode
+      ansible.builtin.include_role:
+        name: "{{ 'deploy_image' if (projects[project].mode | default('rsync')) == 'image' else 'deploy_compose' }}"

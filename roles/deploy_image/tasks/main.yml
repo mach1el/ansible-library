@@ -1,0 +1,56 @@
+---
+# Deploy a registry-image project: render its compose template (Jinja) with the
+# image tag + environment, pull the images, and bring the stack up. No .env —
+# all environment goes into the compose `environment:` block via the template.
+
+- name: Resolve project config
+  ansible.builtin.set_fact:
+    proj: "{{ projects[project] }}"
+
+- name: Fail if project is unknown
+  ansible.builtin.fail:
+    msg: "Unknown project '{{ project }}'. Known: {{ projects.keys() | list }}"
+  when: project not in projects
+
+- name: Require an image tag
+  ansible.builtin.fail:
+    msg: "image_tag is not set (pass -e image_tag=<tag>)."
+  when: image_tag is not defined or image_tag | length == 0
+
+- name: Ensure target directory exists
+  ansible.builtin.file:
+    path: "{{ deploy_root }}/{{ proj.repo_dir }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0755"
+
+- name: Render docker-compose.yml from the project's Jinja template
+  ansible.builtin.template:
+    src: "{{ src_base }}/{{ proj.source }}/{{ proj.compose_template | default('docker-compose.yml.j2') }}"
+    dest: "{{ deploy_root }}/{{ proj.repo_dir }}/docker-compose.yml"
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_user }}"
+    mode: "0640"
+
+- name: Pull the new images
+  ansible.builtin.command:
+    cmd: docker compose pull
+    chdir: "{{ deploy_root }}/{{ proj.repo_dir }}"
+  changed_when: true
+
+- name: Bring the stack up
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans
+    chdir: "{{ deploy_root }}/{{ proj.repo_dir }}"
+  changed_when: true
+
+- name: Confirm services are running
+  ansible.builtin.command:
+    cmd: docker compose ps --status running --format '{% raw %}{{.Service}}{% endraw %}'
+    chdir: "{{ deploy_root }}/{{ proj.repo_dir }}"
+  register: compose_ps
+  changed_when: false
+  retries: 5
+  delay: 3
+  until: compose_ps.stdout_lines | length >= (proj.expected_services | default(1))

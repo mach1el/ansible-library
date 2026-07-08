@@ -51,7 +51,7 @@ projects:
     repo_dir: apexvoid-trading-bot
     source: deployment-template       # holds docker-compose.yml.j2
     compose_template: docker-compose.yml.j2
-    expected_services: 2              # bot + postgres
+    expected_services: 3              # bot + postgres + redis
 
 # --- Per-project non-secret settings -----------------------------------------
 registry_namespace: mich43l

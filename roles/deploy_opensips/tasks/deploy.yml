@@ -33,7 +33,7 @@
         NODE_IP: "{{ NODE_IP }}"
 
 - name: Run docker compose command
-  command: docker compose up -d
+  command: docker compose up -d --force-recreate
   args:
     chdir: "{{ COMPOSE_DIR }}"
 

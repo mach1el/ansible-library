@@ -41,7 +41,7 @@
 
 - name: Bring the stack up
   ansible.builtin.command:
-    cmd: docker compose up -d --remove-orphans
+    cmd: docker compose up -d --remove-orphans --force-recreate
     chdir: "{{ deploy_root }}/{{ proj.repo_dir }}"
   changed_when: true
 

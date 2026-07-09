@@ -35,13 +35,13 @@
     cmd: >-
       docker compose
       {{ proj.compose_files | map('regex_replace', '^(.*)$', '-f \1') | join(' ') }}
-      {{ proj.compose_args | default('up -d') }}
+      {{ proj.compose_args | default('up -d --remove-orphans --force-recreate') }}
     chdir: "{{ deploy_root }}/{{ proj.repo_dir }}"
   register: compose_result
   changed_when: true
 
-# Bind-mounted config (e.g. nginx) changes on disk but `up -d` won't recreate an
-# unchanged container, so the process keeps the old config. Reload it explicitly.
+# Optional hook for services that support an in-process reload after compose has
+# recreated containers.
 - name: Post-up reload (optional)
   ansible.builtin.command:
     cmd: "{{ proj.reload_cmd }}"

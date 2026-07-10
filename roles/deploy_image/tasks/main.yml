@@ -17,6 +17,21 @@
     msg: "image_tag is not set (pass -e image_tag=<tag>)."
   when: image_tag is not defined or image_tag | length == 0
 
+- name: Resolve project environment dict
+  ansible.builtin.set_fact:
+    proj_env: "{{ lookup('vars', proj.env_var, default={}) }}"
+  when: proj.required_env_keys is defined
+
+- name: Require project environment keys
+  ansible.builtin.assert:
+    that:
+      - proj_env[item] is defined
+      - (proj_env[item] | string | length) > 0
+    fail_msg: "Project '{{ project }}' requires env key '{{ item }}' in {{ proj.env_var }}."
+    quiet: true
+  loop: "{{ proj.required_env_keys | default([]) }}"
+  when: proj.required_env_keys is defined
+
 - name: Ensure target directory exists
   ansible.builtin.file:
     path: "{{ deploy_root }}/{{ proj.repo_dir }}"

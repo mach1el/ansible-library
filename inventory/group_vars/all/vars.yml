@@ -51,7 +51,20 @@ projects:
     repo_dir: apexvoid-trading-bot
     source: deployment-template       # holds docker-compose.yml.j2
     compose_template: docker-compose.yml.j2
-    expected_services: 3              # bot + postgres + redis
+    expected_services: 4              # bot + ctrader-feed + postgres + redis
+    env_var: apexvoid_trading_bot_env
+    required_env_keys:
+      - TELEGRAM_BOT_TOKEN
+      - SIGNAL_VIP_CHANNEL_ID
+      - DATABASE_URL
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - CTRADER_CLIENT_ID
+      - CTRADER_CLIENT_SECRET
+      - CTRADER_ACCESS_TOKEN
+      - CTRADER_REFRESH_TOKEN
+      - CTRADER_ACCOUNT_ID
 
 # --- Per-project non-secret settings -----------------------------------------
 registry_namespace: mich43l
@@ -68,4 +81,7 @@ apexvoid_occult_allow_origins: "https://apexvoid.net,https://fate.apexvoid.net"
 deploy_ssh_private_key: "{{ vault_deploy_ssh_private_key }}"
 apexvoid_occult_gemini_api_key: "{{ vault_apexvoid_occult_gemini_api_key }}"
 # Whole bot env (tokens, channel/owner IDs, config) kept encrypted in the vault.
+# cTrader feed deploy also requires these vault keys:
+# CTRADER_CLIENT_ID, CTRADER_CLIENT_SECRET, CTRADER_ACCESS_TOKEN,
+# CTRADER_REFRESH_TOKEN, CTRADER_ACCOUNT_ID.
 apexvoid_trading_bot_env: "{{ vault_apexvoid_trading_bot_env }}"

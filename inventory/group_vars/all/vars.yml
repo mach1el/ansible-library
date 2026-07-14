@@ -55,6 +55,7 @@ projects:
     env_var: apexvoid_trading_bot_env
     required_env_keys:
       - TELEGRAM_BOT_TOKEN
+      - SCANNER_TELEGRAM_BOT_TOKEN
       - SIGNAL_VIP_CHANNEL_ID
       - DATABASE_URL
       - POSTGRES_USER

@@ -66,6 +66,8 @@ projects:
       - CTRADER_ACCESS_TOKEN
       - CTRADER_REFRESH_TOKEN
       - CTRADER_ACCOUNT_ID
+      - AUTO_TRADE_ENABLED
+      - AUTO_TRADE_DRY_RUN
 
 # --- Per-project non-secret settings -----------------------------------------
 registry_namespace: mich43l
@@ -84,5 +86,6 @@ apexvoid_occult_gemini_api_key: "{{ vault_apexvoid_occult_gemini_api_key }}"
 # Whole bot env (tokens, channel/owner IDs, config) kept encrypted in the vault.
 # cTrader feed deploy also requires these vault keys:
 # CTRADER_CLIENT_ID, CTRADER_CLIENT_SECRET, CTRADER_ACCESS_TOKEN,
-# CTRADER_REFRESH_TOKEN, CTRADER_ACCOUNT_ID.
+# CTRADER_REFRESH_TOKEN, CTRADER_ACCOUNT_ID. AUTO_TRADE_ENABLED and
+# AUTO_TRADE_DRY_RUN must also be explicit so deployment mode is never implied.
 apexvoid_trading_bot_env: "{{ vault_apexvoid_trading_bot_env }}"

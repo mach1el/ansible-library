@@ -51,7 +51,7 @@ projects:
     repo_dir: apexvoid-trading-bot
     source: deployment-template       # holds docker-compose.yml.j2
     compose_template: docker-compose.yml.j2
-    expected_services: 4              # bot + ctrader-feed + postgres + redis
+    expected_services: 4              # bot + ctrader-engine + postgres + redis
     env_var: apexvoid_trading_bot_env
     required_env_keys:
       - TELEGRAM_BOT_TOKEN
